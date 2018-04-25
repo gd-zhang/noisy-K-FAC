@@ -42,7 +42,7 @@ class Trainer(BaseTrain):
 
         avg_loss = np.mean(loss_list)
         avg_acc = np.mean(acc_list)
-        self.logger.info("loss: %5.4f | accuracy: %5.4f"%(float(avg_loss), float(avg_acc)))
+        self.logger.info("train | loss: %5.4f | accuracy: %5.4f"%(float(avg_loss), float(avg_acc)))
 
         # summarize
         summaries_dict = dict()
@@ -71,7 +71,7 @@ class Trainer(BaseTrain):
 
         avg_loss = np.mean(loss_list)
         avg_acc = np.mean(acc_list)
-        self.logger.info("loss: %5.4f | accuracy: %5.4f\n"%(float(avg_loss), float(avg_acc)))
+        self.logger.info("test | loss: %5.4f | accuracy: %5.4f\n"%(float(avg_loss), float(avg_acc)))
 
         # summarize
         summaries_dict = dict()

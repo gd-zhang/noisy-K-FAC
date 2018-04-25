@@ -27,7 +27,7 @@ class WeightBlock(object):
         self._weight = tf.get_variable(
             'w'+str(idx)+'_weight',
             shape=self._shape,
-            initializer=tf.variance_scaling_initializer(scale=2.0),
+            initializer=tf.contrib.layers.xavier_initializer(),
             trainable=True
         )
         self._bias = tf.get_variable(

@@ -6,18 +6,18 @@ from network.registry import register_model
 
 
 def VGG(inputs, sampler, is_training, batch_norm, layer_collection, particles, num_blocks):
-    def VGGBlock(x, layers, out_channel, layer_idx):
+    def VGGBlock(inputs, layers, out_channel, layer_idx):
         l2_loss = 0.
         for l in range(layers):
-            in_channel = x.shape.as_list()[-1]
+            in_channel = inputs.shape.as_list()[-1]
             sampler.register_block(layer_idx+l, (3, 3, in_channel, out_channel))
             weights = sampler.sample(layer_idx+l)
-            pre, act = conv2d(x, weights, (3, 3, in_channel, out_channel),
+            pre, act = conv2d(inputs, weights, (3, 3, in_channel, out_channel),
                               batch_norm, is_training, particles, padding="SAME")
             layer_collection.register_conv2d(sampler.get_params(layer_idx+l), (1, 1, 1, 1), "SAME", inputs, pre)
-            x = act
+            inputs = act
             l2_loss += 0.5 * tf.reduce_sum(weights ** 2)
-        outputs = tf.layers.max_pooling2d(x, 2, 2, "SAME")
+        outputs = tf.layers.max_pooling2d(inputs, 2, 2, "SAME")
         return outputs, l2_loss
 
     inputs = tf.tile(inputs, [particles, 1, 1, 1])
