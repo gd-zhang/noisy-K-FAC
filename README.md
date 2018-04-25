@@ -7,7 +7,7 @@ This repository contains the code to reproduce the classification results from t
 
 Noisy Natural Gradient: Variational Inference can be instantiated as natural gradient with adaptive weight noise. By further approximating full Fisher with [K-FAC](https://arxiv.org/abs/1503.05671), we get noisy K-FAC, a surprisingly simple variational training algorithm for Bayesian Neural Nets. 
 
-Now, the implementation of convolution with multiple samples (which is very useful for Bayesian Neural Nets) is messy and slow, I'm considering implement a new operation in tensorflow after NIPS.
+Now, the implementation of convolution with multiple samples (which is very useful for Bayesian Neural Nets) is messy and slow, we're considering implement a new operation in tensorflow after NIPS.
 
 ## Citation
 To cite this work, please use
