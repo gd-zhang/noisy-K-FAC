@@ -8,9 +8,9 @@ import os
 
 from misc.utils import get_logger, get_args, makedirs
 from misc.config import process_config
+from misc.data_loader import load_pytorch
 from core.model import Model
 from core.train import Trainer
-from data_loader import load_pytorch
 
 
 _INPUT_DIM = {
