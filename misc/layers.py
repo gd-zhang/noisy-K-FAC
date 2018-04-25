@@ -2,10 +2,10 @@ import tensorflow as tf
 
 
 def _append_homog(tensor):
-  rank = len(tensor.shape.as_list())
-  shape = tf.concat([tf.shape(tensor)[:-1], [1]], axis=0)
-  ones = tf.ones(shape, dtype=tensor.dtype)
-  return tf.concat([tensor, ones], axis=rank - 1)
+    rank = len(tensor.shape.as_list())
+    shape = tf.concat([tf.shape(tensor)[:-1], [1]], axis=0)
+    ones = tf.ones(shape, dtype=tensor.dtype)
+    return tf.concat([tensor, ones], axis=rank - 1)
 
 
 def dense(inputs, weights, batch_norm, is_training, particles=1):

@@ -23,6 +23,7 @@ class Model(BaseModel):
 
     @property
     def trainable_variables(self):
+        # note: we don't train the params of BN
         vars = []
         for var in tf.trainable_variables():
             if "w" in var.name:

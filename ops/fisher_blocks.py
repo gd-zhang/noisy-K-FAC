@@ -14,7 +14,7 @@ from tensorflow.python.ops import math_ops
 # the parameters can be thought of as being replicated in time or space,
 # we want to adjust the scale of the damping by
 #   damping /= num_replications ** NORMALIZE_DAMPING_POWER
-NORMALIZE_DAMPING_POWER = 0.0
+NORMALIZE_DAMPING_POWER = 1.0
 
 # Methods for adjusting damping for FisherBlocks. See
 # _compute_pi_adjusted_damping() for details.
@@ -369,7 +369,7 @@ class ConvDiagonalFB(FisherBlock):
 
         if NORMALIZE_DAMPING_POWER:
             damping /= self._num_locations**NORMALIZE_DAMPING_POWER
-        self._damping = damping
+        self._damping = self._num_locations**NORMALIZE_DAMPING_POWER * damping
 
         self._factor = self._layer_collection.make_or_get_factor(
             fisher_factors.ConvDiagonalFactor,

@@ -151,5 +151,3 @@ class KFACOptimizer(gradient_descent.GradientDescentOptimizer):
 
         # Go through variable and update its associated part of the velocity vector.
         return [_update_velocity(vec, var) for vec, var in vecs_and_vars]
-
-
