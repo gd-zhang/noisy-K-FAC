@@ -3,7 +3,7 @@
 The major contributors of this repository include [Guodong Zhang](https://github.com/gd-zhang) and [Shengyang Sun](https://github.com/ssydasheng).
 
 ## Introduction
-This repository contains the code to reproduce the classification results from the paper Noisy Natural Gradient as Variational Inference ([Paper](https://arxiv.org/abs/1712.02390), [Video](https://www.youtube.com/watch?v=bWItvHYqKl8)).
+This repository contains the code to reproduce the classification results from the paper Noisy Natural Gradient as Variational Inference [Paper](https://arxiv.org/abs/1712.02390), [Video](https://www.youtube.com/watch?v=bWItvHYqKl8). (RL code see [VIME-NNG](https://github.com/gd-zhang/VIME-NNG))
 
 Noisy Natural Gradient: Variational Inference can be instantiated as natural gradient with adaptive weight noise. By further approximating full Fisher with [K-FAC](https://arxiv.org/abs/1503.05671), we get noisy K-FAC, a surprisingly simple variational training algorithm for Bayesian Neural Nets. Noisy K-FAC not only improves the classification accuracy, but also gives well-calibrated prediction. 
 
