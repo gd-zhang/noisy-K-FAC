@@ -31,7 +31,7 @@ This project uses Python 3.5.2. Before running the code, you have to install
 
 ## Example
 ```
-python main.py --config config/kfac_plain.json
+python main.py --config configs/kfac_plain.json
 ```
 
 ## Tensorboard Visualization
