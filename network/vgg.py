@@ -1,6 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
+from core import MODE_CLASSIFICATION
 from misc.layers import dense, conv2d
 from network.registry import register_model
 
@@ -49,7 +50,7 @@ def VGG(inputs, sampler, is_training, batch_norm, layer_collection, particles, n
     layer_collection.register_fully_connected(sampler.get_params(layer_idx), flat, logits)
     layer_collection.register_categorical_predictive_distribution(logits, name="logits")
 
-    return logits, l2_loss
+    return logits, l2_loss, MODE_CLASSIFICATION
 
 
 @register_model("vgg11")
