@@ -78,6 +78,18 @@ def load_pytorch(config):
         ])
         trainset = torchvision.datasets.FashionMNIST(root=config.data_path, train=True, download=True, transform=transform)
         testset = torchvision.datasets.FashionMNIST(root=config.data_path, train=False, download=True, transform=transform)
+    elif config.dataset == 'x3':
+        # TODO: build toy x3 dataset.
+        train_X = torch.rand(3000, 1) * 2 - 1
+        train_Y = (train_X**3).squeeze()
+        test_X = torch.rand(1000, 1) * 2 - 1
+        test_Y = (test_X**3).squeeze()
+
+        mean, std = train_Y.mean(), train_Y.std()
+        def normalize(tensor):
+            return (tensor - mean) / std
+        trainset = torch.utils.data.TensorDataset(train_X, normalize(train_Y))
+        testset = torch.utils.data.TensorDataset(test_X, normalize(test_Y))
     else:
         raise ValueError("Unsupported dataset!")
 
