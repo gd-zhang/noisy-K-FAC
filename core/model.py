@@ -38,27 +38,28 @@ class Model(BaseModel):
         net = get_model(self.config.model_name)
 
         self.sampler = sp.Sampler(self.config, self.n_data, self.n_particles)
-        output, l2_loss, mode = net(inputs, self.sampler, self.is_training,
+        outputs, l2_loss, mode = net(inputs, self.sampler, self.is_training,
                               self.config.batch_norm, self.layer_collection,
                               self.n_particles)
+        self.outputs = outputs
 
 
         if mode == MODE_REGRESSION:
             self.targets = tf.placeholder(tf.float32, [None])
             targets_ = tf.tile(self.targets, [self.n_particles])
-            self.loss = tf.losses.mean_squared_error(targets_, tf.squeeze(output, 1))
+            self.loss = tf.losses.mean_squared_error(targets_, tf.squeeze(outputs, 1))
             self.acc = self.loss
         elif mode == MODE_CLASSIFICATION:
             self.targets = tf.placeholder(tf.int64, [None])
             targets_ = tf.tile(self.targets, [self.n_particles])
             logits_ = tf.reduce_mean(
-                tf.reshape(output, [self.n_particles, -1, tf.shape(output)[-1]]
+                tf.reshape(outputs, [self.n_particles, -1, tf.shape(outputs)[-1]]
                     ), 0)
             self.acc = tf.reduce_mean(tf.cast(tf.equal(
                 self.targets, tf.argmax(logits_, axis=1)), dtype=tf.float32))
             self.loss = tf.reduce_mean(
                 tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    labels=targets_, logits=output))
+                    labels=targets_, logits=outputs))
         else:
             raise TypeError("Illegal mode: {}".format(mode))
 
