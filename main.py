@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import numpy as np
+import matplotlib.pyplot as plt
 import os
 
 from misc.utils import get_logger, get_args, makedirs
@@ -55,6 +56,28 @@ def main():
     trainer = Trainer(sess, model_, train_loader, test_loader, config, logger)
 
     trainer.train()
+
+    if config.dataset == "x3":
+        plot_x3(sess, model_, test_loader)
+
+def plot_x3(sess, model_, test_loader, particles=5):
+    X, Y = test_loader.dataset.tensors
+    feed_dict = {
+            model_.inputs: X,
+            model_.is_training: False,
+            model_.n_particles: particles,
+    }
+    Y_hat = sess.run(model_.outputs, feed_dict=feed_dict).flatten()
+    X = X.numpy().flatten()
+    Y = Y.numpy()
+
+    N = len(Y)
+    for i in range(particles):
+        plt.scatter(X, Y_hat[N*i:N*(i+1)], label="prediction {}".format(i),
+                s=1)
+    plt.scatter(X, Y, label="test", s=1)
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
