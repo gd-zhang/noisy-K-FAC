@@ -5,8 +5,8 @@ from __future__ import print_function
 import abc
 import six
 
-from ops import fisher_factors
-from ops import utils
+from . import fisher_factors
+from . import utils
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
 

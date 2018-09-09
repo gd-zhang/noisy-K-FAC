@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
 
-from core import MODE_CLASSIFICATION
-from misc.layers import dense, conv2d
-from network.registry import register_model
+from ..core import MODE_CLASSIFICATION
+from ..misc.layers import dense, conv2d
+from .registry import register_model
 
 
 def VGG(inputs, sampler, is_training, batch_norm, layer_collection, particles, num_blocks):

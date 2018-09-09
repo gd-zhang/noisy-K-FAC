@@ -1,11 +1,11 @@
 import tensorflow as tf
 
-from ops import optimizer as opt
-from ops import layer_collection as lc
-from ops import sampler as sp
-from network.registry import get_model
-from core.base_model import BaseModel
-from core import MODE_REGRESSION, MODE_CLASSIFICATION
+from ..ops import optimizer as opt
+from ..ops import layer_collection as lc
+from ..ops import sampler as sp
+from ..network.registry import get_model
+from .base_model import BaseModel
+from . import MODE_REGRESSION, MODE_CLASSIFICATION
 
 class Model(BaseModel):
     def __init__(self, config, input_dim, n_data):

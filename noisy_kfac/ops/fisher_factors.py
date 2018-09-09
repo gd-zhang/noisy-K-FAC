@@ -8,7 +8,7 @@ import contextlib
 import numpy as np
 import six
 
-from ops import utils
+from . import utils
 from tensorflow.python.framework import ops as tf_ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import control_flow_ops

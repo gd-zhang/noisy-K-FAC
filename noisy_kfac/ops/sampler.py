@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import ops.weight_blocks as wb
+from . import weight_blocks as wb
 
 from collections import OrderedDict
 

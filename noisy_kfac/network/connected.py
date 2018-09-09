@@ -1,9 +1,9 @@
 import tensorflow as tf
 import numpy as np
 
-from core import MODE_REGRESSION
-from misc.layers import dense
-from network.registry import register_model
+from ..core import MODE_REGRESSION
+from ..misc.layers import dense
+from .registry import register_model
 
 def FullyConnected(inputs, sampler, is_training, batch_norm, layer_collection,
         particles, out_sizes):

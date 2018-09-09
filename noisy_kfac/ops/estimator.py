@@ -5,7 +5,7 @@ from __future__ import print_function
 import contextlib
 import itertools
 
-from ops import utils
+from . import utils
 from tensorflow.python.framework import ops as tf_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import gradients_impl

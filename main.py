@@ -7,11 +7,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-from misc.utils import get_logger, get_args, makedirs
-from misc.config import process_config
-from misc.data_loader import load_pytorch
-from core.model import Model
-from core.train import Trainer
+from noisy_kfac.misc.utils import get_logger, get_args, makedirs
+from noisy_kfac.misc.config import process_config
+from noisy_kfac.misc.data_loader import load_pytorch
+from noisy_kfac.core.model import Model
+from noisy_kfac.core.train import Trainer
 
 
 _INPUT_DIM = {
@@ -39,8 +39,8 @@ def main():
 
     # set logger
     path = os.path.dirname(os.path.abspath(__file__))
-    path1 = os.path.join(path, 'core/model.py')
-    path2 = os.path.join(path, 'core/train.py')
+    path1 = os.path.join(path, 'noisy_kfac/core/model.py')
+    path2 = os.path.join(path, 'noisy_kfac/core/train.py')
     logger = get_logger('log', logpath=config.summary_dir+'/',
                         filepath=os.path.abspath(__file__), package_files=[path1, path2])
 

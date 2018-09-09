@@ -8,7 +8,7 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables as tf_variables
 from tensorflow.python.training import gradient_descent
-from ops import estimator as est
+from . import estimator as est
 
 
 class KFACOptimizer(gradient_descent.GradientDescentOptimizer):
