@@ -75,7 +75,7 @@ def plot_x3(sess, model_, test_loader, particles=5):
     for i in range(particles):
         plt.scatter(X, Y_hat[N*i:N*(i+1)], label="prediction {}".format(i),
                 s=1)
-    plt.scatter(X, Y, label="test", s=1)
+    plt.scatter(X, Y, label="test", s=3)
     plt.legend()
     plt.show()
 
