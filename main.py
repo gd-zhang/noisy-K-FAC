@@ -49,16 +49,16 @@ def main():
     # load data
     train_loader, test_loader = load_pytorch(config)
 
-    # define computational graph
-    sess = tf.Session()
+    with tf.Graph().as_default() as g:
+        with tf.Session(graph=g).as_default() as sess:
+            # define computational graph
+            model_ = Model(config, _INPUT_DIM[config.dataset], len(train_loader.dataset))
+            trainer = Trainer(sess, model_, train_loader, test_loader, config, logger)
 
-    model_ = Model(config, _INPUT_DIM[config.dataset], len(train_loader.dataset))
-    trainer = Trainer(sess, model_, train_loader, test_loader, config, logger)
+            trainer.train()
 
-    trainer.train()
-
-    if config.dataset == "x3":
-        plot_x3(sess, model_, test_loader)
+            if config.dataset == "x3":
+                plot_x3(sess, model_, test_loader)
 
 def plot_x3(sess, model_, test_loader, particles=5):
     X, Y = test_loader.dataset.tensors
