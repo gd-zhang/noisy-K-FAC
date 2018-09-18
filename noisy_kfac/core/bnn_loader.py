@@ -24,7 +24,8 @@ _INPUT_DIM = {
 class BNNLoader():
     logger = None
 
-    def __init__(self, input_size=None, config_name="x3/kfac_plain.json"):
+    def __init__(self, input_size=None, config_name="x3/kfac_ird.json",
+            train_loader=None, test_loader=None):
         parent_dir = os.path.dirname(os.path.abspath(__file__))
         root_dir = os.path.join(parent_dir, '../../')
         configpath = os.path.join(root_dir, 'configs/', config_name)
@@ -35,14 +36,23 @@ class BNNLoader():
         path2 = os.path.join(root_dir, 'noisy_kfac/core/train.py')
         BNNLoader.logger = BNNLoader.logger or get_logger('log',
                             logpath=config.summary_dir+'/',
-                            filepath=os.path.abspath(__file__),
-                            package_files=[path1, path2],)
+                            filepath=os.path.abspath(__file__),)
+                            # package_files=[path1, path2],)
 
         self.logger.info(self)
         self.logger.info(str(config.items()))
 
         # load data
-        self.train_loader, self.test_loader = load_pytorch(config)
+        train_loader_cfg, test_loader_cfg = load_pytorch(config)
+
+        self.train_loader = train_loader
+        if self.train_loader is None:
+            self.train_loader = train_loader_cfg
+
+        self.test_loader = test_loader
+        if self.test_loader is None:
+            self.test_loader = test_loader_cfg
+
         self.graph = tf.Graph()
         self.sess = tf.Session(graph=self.graph)
 
@@ -51,7 +61,7 @@ class BNNLoader():
                 # define computational graph
                 input_size = input_size or _INPUT_DIM[self.config.dataset]
                 self.model = Model(self.config, input_size,
-                        len(self.train_loader.dataset))
+                        len(self.train_loader))
                 self.trainer = Trainer(self.sess, self.model, self.train_loader,
                         self.test_loader, self.config, self.logger)
 
@@ -83,6 +93,7 @@ class BNNLoader():
 
 
 def plot_x3(sess, model_, test_loader, particles=5):
+    # Only applicable to config-loaded X3 dataset.
     X, Y = test_loader.dataset.tensors
     feed_dict = {
             model_.inputs: X,

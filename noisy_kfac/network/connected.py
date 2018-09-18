@@ -64,6 +64,8 @@ register_model("fc1_20")(_build_fc([20, 1]))
 register_model("fc2_10")(_build_fc([10, 10, 1]))
 register_model("fc2_20")(_build_fc([20, 20, 1]))
 
+register_model("fc1_1_ird")(_build_fc_ird([1, 1]))
+register_model("fc1_5_ird")(_build_fc_ird([5, 1]))
 register_model("fc1_10_ird")(_build_fc_ird([10, 1]))
 register_model("fc1_20_ird")(_build_fc_ird([20, 1]))
 register_model("fc2_10_ird")(_build_fc_ird([10, 10, 1]))
