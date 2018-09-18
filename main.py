@@ -12,6 +12,7 @@ from noisy_kfac.misc.config import process_config
 from noisy_kfac.misc.data_loader import load_pytorch
 from noisy_kfac.core.model import Model
 from noisy_kfac.core.train import Trainer
+from noisy_kfac.core.bnn_loader import BNNLoader
 
 
 _INPUT_DIM = {
@@ -33,7 +34,10 @@ def main():
     except:
         print("Add a config file using \'--config file_name.json\'")
         exit(1)
+    from_config(config)
 
+
+def from_config(config):
     makedirs(config.summary_dir)
     makedirs(config.checkpoint_dir)
 
@@ -44,7 +48,7 @@ def main():
     logger = get_logger('log', logpath=config.summary_dir+'/',
                         filepath=os.path.abspath(__file__), package_files=[path1, path2])
 
-    logger.info(config)
+    logger.info(str(config.items()))
 
     # load data
     train_loader, test_loader = load_pytorch(config)

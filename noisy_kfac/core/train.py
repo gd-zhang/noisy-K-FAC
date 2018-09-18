@@ -2,6 +2,8 @@ from .base_train import BaseTrain
 from tqdm import tqdm
 import numpy as np
 
+from . import MODE_IRD
+
 
 class Trainer(BaseTrain):
     def __init__(self, sess, model, train_loader, test_loader, config, logger):
@@ -9,23 +11,32 @@ class Trainer(BaseTrain):
         self.train_loader = train_loader
         self.test_loader = test_loader
 
-    def train(self):
+    def train(self, aux_inputs=None):
+        if self.model.mode == MODE_IRD:
+            base_feed_dict = {
+                self.model.aux_inputs: aux_inputs,
+            }
+        else:
+            base_feed_dict={}
         for cur_epoch in range(self.config.epoch):
             self.logger.info('epoch: {}'.format(int(cur_epoch)))
-            self.train_epoch()
-            self.test_epoch()
+            self.train_epoch(base_feed_dict)
+            self.test_epoch(base_feed_dict)
 
-    def train_epoch(self):
+    def train_epoch(self, base_feed_dict={}):
         loss_list = []
         acc_list = []
         for itr, (x, y) in enumerate(tqdm(self.train_loader)):
-            feed_dict = {
+            feed_dict = dict(base_feed_dict)
+            feed_dict.update({
+                self.model.is_training: True,
+                self.model.n_particles: self.config.train_particles,
                 self.model.inputs: x,
-                self.model.targets: y,
-                self.model.n_particles: self.config.train_particles
-            }
+                })
+            if self.model.mode != MODE_IRD:
+                assert self.model.targets is not None
+                feed_dict[self.model.targets] = y
 
-            feed_dict.update({self.model.is_training: True})
             self.sess.run([self.model.train_op], feed_dict=feed_dict)
 
             feed_dict.update({self.model.is_training: False})  # note: that's important
@@ -55,16 +66,20 @@ class Trainer(BaseTrain):
 
         # self.model.save(self.sess)
 
-    def test_epoch(self):
+    def test_epoch(self, base_feed_dict={}):
         loss_list = []
         acc_list = []
         for (x, y) in self.test_loader:
-            feed_dict = {
+            feed_dict = dict(base_feed_dict)
+            feed_dict.update({
                 self.model.inputs: x,
-                self.model.targets: y,
                 self.model.is_training: False,
-                self.model.n_particles: self.config.test_particles
-            }
+                self.model.n_particles: self.config.test_particles,
+                })
+            if self.model.mode != MODE_IRD:
+                assert self.model.targets is not None
+                feed_dict[self.model.targets] = y
+
             loss, acc = self.sess.run([self.model.loss, self.model.acc], feed_dict=feed_dict)
             loss_list.append(loss)
             acc_list.append(acc)

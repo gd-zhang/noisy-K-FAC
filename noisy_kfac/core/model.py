@@ -5,7 +5,7 @@ from ..ops import layer_collection as lc
 from ..ops import sampler as sp
 from ..network.registry import get_model
 from .base_model import BaseModel
-from . import MODE_REGRESSION, MODE_CLASSIFICATION
+from . import MODE_CLASSIFICATION, MODE_REGRESSION, MODE_IRD
 
 class Model(BaseModel):
     def __init__(self, config, input_dim, n_data):
@@ -30,24 +30,36 @@ class Model(BaseModel):
         return vars
 
     def build_model(self):
-        self.inputs = tf.placeholder(tf.float32, [None] + self.input_dim)
-        self.is_training = tf.placeholder(tf.bool)
-        self.n_particles = tf.placeholder(tf.int32)
+        self.inputs = tf.placeholder(tf.float32, [None] + self.input_dim,
+                name="inputs")
+        self.aux_inputs = tf.placeholder(tf.float32, [None] + self.input_dim,
+                name="aux_inputs")
+        self.is_training = tf.placeholder(tf.bool, name="is_training")
+        self.n_particles = tf.placeholder(tf.int32, name="n_particles")
 
-        inputs = self.inputs
         net = get_model(self.config.model_name)
 
         self.sampler = sp.Sampler(self.config, self.n_data, self.n_particles)
-        outputs, l2_loss, mode = net(inputs, self.sampler, self.is_training,
+        outputs, aux_outputs, l2_loss, mode = net(self.inputs, self.aux_inputs,
+                              self.sampler, self.is_training,
                               self.config.batch_norm, self.layer_collection,
                               self.n_particles)
+
+        self.aux_outputs = aux_outputs
         self.outputs = outputs
+        self.mode = mode
 
 
         if mode == MODE_REGRESSION:
             self.targets = tf.placeholder(tf.float32, [None])
             targets_ = tf.tile(self.targets, [self.n_particles])
-            self.loss = tf.losses.mean_squared_error(targets_, tf.squeeze(outputs, 1))
+            self.loss = tf.losses.mean_squared_error(targets_,
+                    tf.squeeze(outputs, 1))
+            self.acc = self.loss
+        elif mode == MODE_IRD:
+            self.targets = None
+            self.aux_lse = tf.reduce_logsumexp(self.aux_outputs, name="aux_lse")
+            self.loss = -tf.reduce_mean(tf.subtract(self.outputs, self.aux_lse, name="loss"))
             self.acc = self.loss
         elif mode == MODE_CLASSIFICATION:
             self.targets = tf.placeholder(tf.int64, [None])
