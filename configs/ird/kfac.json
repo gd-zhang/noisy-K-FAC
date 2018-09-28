@@ -4,7 +4,7 @@
   "data_path": "../data",
   "optimizer": "kfac",
   "fisher_approx": "kron",
-  "model_name": "fc1_10_ird",
+  "model_name": "ird1_10",
   "data_aug": false,
   "batch_norm": false,
   "epoch": 150,
