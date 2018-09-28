@@ -20,15 +20,6 @@ class Model(BaseModel):
         self.init_optim()
         self.init_saver()
 
-    @property
-    def trainable_variables(self):
-        # note: we don't train the params of BN
-        vars = []
-        for var in tf.trainable_variables():
-            if "w" in var.name:
-                vars.append(var)
-        return vars
-
     def build_model(self):
         self.inputs = tf.placeholder(tf.float32, [None] + self.input_dim,
                 name="inputs")

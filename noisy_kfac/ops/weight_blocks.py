@@ -25,13 +25,13 @@ class WeightBlock(object):
 
     def _build_weights(self, idx):
         self._weight = tf.get_variable(
-            'w'+str(idx)+'_weight',
+            'train_w_'+str(idx)+'_weight',
             shape=self._shape,
             initializer=tf.contrib.layers.xavier_initializer(),
             trainable=True
         )
         self._bias = tf.get_variable(
-            'w'+str(idx)+'_bias',
+            'train_w_'+str(idx)+'_bias',
             shape=[self._n_out],
             initializer=tf.constant_initializer(0.),
             trainable=True
@@ -59,7 +59,7 @@ class FFGBlock(WeightBlock):
     def __init__(self, idx, shape, coeff, eta):
         super(FFGBlock, self).__init__(idx, shape, coeff, eta)
         self._std = tf.get_variable(
-            'w'+str(idx)+'_std',
+            'train_w_'+str(idx)+'_std',
             shape=[self._n_in, self._n_out],
             initializer=tf.constant_initializer(1e-5),
             trainable=False
@@ -83,12 +83,12 @@ class MVGBlock(WeightBlock):
     def __init__(self, idx, shape, coeff, eta):
         super(MVGBlock, self).__init__(idx, shape, coeff, eta)
         self._u_c = tf.get_variable(
-            'w'+str(idx)+'_u_c',
+            'train_w_'+str(idx)+'_u_c',
             initializer=1e-3 * tf.eye(self._n_in),
             trainable=False
         )
         self._v_c = tf.get_variable(
-            'w'+str(idx)+'_v_c',
+            'train_w_'+str(idx)+'_v_c',
             initializer=1e-3 * tf.eye(self._n_out),
             trainable=False
         )

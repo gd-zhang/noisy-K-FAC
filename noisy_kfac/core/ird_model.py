@@ -23,16 +23,6 @@ class IRDModel(BaseModel):
         self.init_saver()
 
 
-    @property
-    def trainable_variables(self):
-        # note: we don't train the params of BN
-        vars = []
-        for var in tf.trainable_variables():
-            if "w" in var.name:
-                vars.append(var)
-        return vars
-
-
     def build_model(self):
         # Define network parameters.
         self.is_training = tf.placeholder(tf.bool, name="is_training")
