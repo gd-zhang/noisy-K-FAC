@@ -5,9 +5,9 @@ import numpy as np
 from . import MODE_IRD
 
 
-class Trainer(BaseTrain):
+class KFACTrainer(BaseTrain):
     def __init__(self, sess, model, train_loader, test_loader, config, logger):
-        super(Trainer, self).__init__(sess, model, config, logger)
+        super(KFACTrainer, self).__init__(sess, model, config, logger)
         self.train_loader = train_loader
         self.test_loader = test_loader
 
