@@ -36,29 +36,7 @@ class BaseModel:
         self.global_step_tensor = tf.train.get_or_create_global_step()
 
     def init_optim(self):
-        self.optim = opt.KFACOptimizer(
-            var_list=self.trainable_variables,
-            learning_rate=self.config.learning_rate,
-            cov_ema_decay=self.config.cov_ema_decay,
-            damping=self.config.damping,
-            layer_collection=self.layer_collection,
-            norm_constraint=tf.train.exponential_decay(self.config.kl_clip,
-                                                       self.global_step_tensor,
-                                                       390, 0.95,
-                                                       staircase=True),
-            momentum=self.config.momentum)
-
-        self.cov_update_op = self.optim.cov_update_op
-        self.inv_update_op = self.optim.inv_update_op
-
-        with tf.control_dependencies([self.inv_update_op]):
-            self.var_update_op = self.sampler.update(
-                    self.layer_collection.get_blocks())
-
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            self.train_op = self.optim.minimize(self.total_loss,
-                    global_step=self.global_step_tensor)
+        raise NotImplementedError
 
     def init_saver(self):
         self.saver = tf.train.Saver(max_to_keep=self.config.max_to_keep)
