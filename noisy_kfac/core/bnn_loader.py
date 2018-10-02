@@ -56,37 +56,20 @@ class BNNLoader():
         if self.test_loader is None:
             self.test_loader = test_loader_cfg
 
-        self.graph = tf.Graph()
-        self.sess = tf.Session(graph=self.graph)
+        self.sess = tf.get_default_session()
 
-        with self.graph.as_default():
-            with self.sess.as_default():
-                # define computational graph
-                input_size = input_size or _INPUT_DIM[self.config.dataset]
-                self.model = Model(self.config, input_size,
-                        len(self.train_loader))
-                self.trainer = Trainer(self.sess, self.model, self.train_loader,
-                        self.test_loader, self.config, self.logger)
-
-        self.train = self.use_graph_and_sess(self._train)
-        self.test = self.use_graph_and_sess(self._test)
-
-    def use_graph_and_sess(self, f):
-        """
-        Decorate a function to use the graph and session associated with this
-        BNNLoader.
-        """
-        def inner(*args, **kwargs):
-            with self.graph.as_default():
-                with self.sess.as_default():
-                    return f(*args, **kwargs)
-        return inner
+        # define computational graph
+        input_size = input_size or _INPUT_DIM[self.config.dataset]
+        self.model = Model(self.config, input_size,
+                len(self.train_loader))
+        self.trainer = Trainer(self.sess, self.model, self.train_loader,
+                self.test_loader, self.config, self.logger)
 
 
-    def _train(self, aux_inputs):
+    def train(self, aux_inputs):
         self.trainer.train(aux_inputs)
 
-    def _test(self, X, n_samples=5):
+    def test(self, X, n_samples=5):
         feed_dict = {
                 self.model.inputs: X,
                 self.model.is_training: False,
