@@ -74,33 +74,23 @@ class NoisyAdamTrainer(BaseTrain):
 
             feed_dict.update({
                 self.model.is_training: is_training,
-                self.model.n_particles: self.config.train_particles,
                 self.model.inputs: x,
                 })
 
             # XXX: Important!
             self.sess.run([self.model.train_op], feed_dict=feed_dict)
 
-            # idk why this is important, but ok. Oh, maybe batch norm and stuff?
-            feed_dict[self.model.is_training] = False  # note: that's important
+            # Get rid of batch norm during testing.
+            feed_dict[self.model.is_training] = False
 
-            # TODO: Implement this method. loss is obvious.
-            # log_aux is a dictionary -- {str => scalar}. It contains other
-            # quantities to log.
             loss, log_aux = self.model.get_loss_and_aux(feed_dict=feed_dict)
-            if self.model.mode == MODE_IRD:
-                loss, outputs, aux_outputs, total_loss = self.sess.run([
-                    self.model.loss, self.model.outputs,
-                    self.model.aux_outputs, self.model.total_loss],
-                    feed_dict=feed_dict)
-            else:
-                loss = self.sess.run([self.model.loss], feed_dict=feed_dict)
+            # loss, outputs, aux_outputs, total_loss = self.sess.run([
+            #     self.model.loss, self.model.outputs,
+            #     self.model.aux_outputs, self.model.total_loss],
+            #     feed_dict=feed_dict)
             loss_list.append(loss)
 
             cur_iter = self.model.global_step_tensor.eval(self.sess)
-
-            # XXX: Make sure to update mu and f here. Figure out how.
-            # ???
 
         avg_loss = np.mean(loss_list)
 
@@ -109,9 +99,9 @@ class NoisyAdamTrainer(BaseTrain):
 
         # summarize
         summaries_dict = dict()
-        summaries_dict['train_loss'] = avg_loss
+        summaries_dict[prefix+'_loss'] = avg_loss
 
-        for name, scalar in aux.items():
+        for name, scalar in log_aux.items():
             print("{} | {}: {:5.4f} ".format(prefix, name, scalar)
 
         # summarize

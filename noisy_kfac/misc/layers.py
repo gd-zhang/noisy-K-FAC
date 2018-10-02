@@ -9,6 +9,9 @@ def _append_homog(tensor):
 
 
 def dense(inputs, weights, batch_norm, is_training, particles=1):
+    """
+    Automatically adds bias units.
+    """
     inputs = _append_homog(inputs)
     n_in = inputs.shape.as_list()[-1]
     inputs = tf.reshape(inputs, [particles, -1, n_in])

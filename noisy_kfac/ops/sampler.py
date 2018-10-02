@@ -42,13 +42,12 @@ class Sampler(object):
             raise ValueError("Duplicate registration: {}".format(idx))
 
         block_type = _APPROX_TO_BLOCK_TYPES[self.config.fisher_approx]
-        self.blocks[idx] = block_type(idx, shape, self.config.kl/self._n_data, self.config.eta)
+        self.blocks[idx] = block_type(idx, shape, self.config.kl/self._n_data,
+                self.config.eta)
 
     def update(self, blocks):
         block_list = self.get_block()
         update_op = [wb.update(fb) for wb, fb in zip(block_list, blocks)]
         return tf.group(*update_op)
-
-
 
 

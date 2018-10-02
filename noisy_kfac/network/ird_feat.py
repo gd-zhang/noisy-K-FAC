@@ -2,13 +2,13 @@ import tensorflow as tf
 import numpy as np
 import functools
 
-from ..core import MODE_REGRESSION, MODE_IRD
 from ..misc.layers import dense
 from .registry import register_model
+from ..ops import weight_blocks
 
 def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
         layer_out_sizes, sampler,
-        is_training, batch_norm, layer_collections, n_particles, scope=None):
+        is_training, batch_norm, n_particles, scope=None):
     """
     Build a IRD-style dense network which predicts `main_outputs_traj`, the
     rewards of features of state-action pairs in `main_input_traj`. Similarly,
@@ -57,9 +57,6 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
         training mode.
       batch_norm: A boolean indicating whether or not we should apply batch_norm
         to the network.
-      layer_collections: A LayerCollections object, used to store activation
-        inputs and outputs of each network layer and to update the Fisher
-        matrix.
       n_particles: A scalar Tensor object indicating the number of neural
         networks to sample from when generating outputs. (Drawn from Baysian
         Neural Network distribution)
@@ -84,7 +81,11 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
       l2_loss: A Tensor with shape [n_particles] containing the sum of squares
         of weights of each particle.
       assert_group: A tf.group of tf.Assert operations that act as
-          sanity checks on this network.
+        sanity checks on this network.
+      param_dict: A dictionary {sample => (mean, fisher_diag)}. The keys are
+        all the weight_samples with which we want to take Noisy Adam gradients
+        to. The values are the variational parameters we need to update for
+        each weight.
     """
     # Might want to move this scope up a level to outside the function call.
     with tf.variable_scope(name=scope, default_name="ird_feat"):
@@ -102,23 +103,18 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
         aux_input = tf.reshape(aux_input_traj,
                 [n_aux*n_timesteps, n_features], name="aux_input")
 
-
-        # Combine main and aux inputs into a single input Tensor.
-        input_combined = tf.concat(main_input, aux_input,
-                name="input_combined")
-
         # Build dense network.
-        output_combined, l2_loss = fully_connected(input_combined, sampler,
-                is_training, batch_norm, layer_collection, n_particles,
+        main_output, aux_output, l2_loss, param_dict = fully_connected(
+                main_input, aux_input,
+                sampler, is_training, batch_norm, n_particles,
                 layer_out_sizes)
 
-        output_combined = tf.identity(output_combined, name="output_combined")
-
-        # Split output_combined back into main and aux components.
-        main_output, aux_output = tf.split(output_combined,
-                [n_main*n_timesteps, n_aux*n_timesteps])
         main_output = tf.identity(main_output, name="main_output")
         aux_output = tf.identity(aux_output, name="aux_output")
+
+        # TODO: After fully_connected, n_particles should be on the zeroth
+        # dimension rather than the last dimension. Reflect this in the
+        # asserts.
 
         # Sanity check to ensure that splitting works here. I can remove later.
         main_shape = tf.shape(main_output)
@@ -177,56 +173,73 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
 
         assert_group = tf.group(*assert_list)
 
-    return main_output, aux_output, aux_output_lse, ll_sep, ll, assert_group
+    return (main_output, aux_output, aux_output_lse, ll_sep, ll, l2_loss,
+            assert_group, param_dict)
 
 
-def fully_connected(inputs, sampler, is_training, batch_norm,
-        layer_collection, particles, out_sizes):
+def fully_connected(inputs, aux_inputs, sampler, is_training, batch_norm,
+        particles, out_sizes):
     """
     out_sizes (list[int]): A nonempty list of layer output sizes. For example,
       `[10, 1]` describes a fully connected network with a scalar output
       and a single hidden layer of size 10. Input size is inferred from
       `inputs`.
     Returns:
-      pred: A Tensor with shape [n_inputs, particles] providing `particles`
-        samples of outputs for each row of inputs.
-      l2_loss: The l2 regularization error, equal to the sum of squares of
-        weights in this neural network.
+      main_pred: A Tensor with shape [n_main_inputs, particles] providing
+        `particles` samples of outputs for each row of inputs.
+      aux_pred: A Tensor with shape [n_aux_inputs, particles] providing
+        `particles` samples of outputs for each row of inputs.
+      l2_loss: The l2 regularization error, equal to the one-half times the sum
+        of squares of weights in this neural network. This is useful for
+        noisy-kfac because its gradient is equal to the weight vector itself.
+      param_dict: A dictionary mapping weight_samples to their variational
+        parameters (mean, fisher_diag).
     """
-    def FCBlock(inputs, aux_inputs, out_channel, layer_idx,
+    param_dict = dict()
+    def FCBlock(main_inputs, aux_inputs, out_channel, layer_idx,
             ignore_activation=False):
         with tf.variable_scope("layer"+layer_idx):
-            in_channel = inputs.shape.as_list()[-1]
+            in_channel = main_inputs.shape.as_list()[-1]
             sampler.register_block(layer_idx, (in_channel, out_channel))
+            # TODO: Make sure that this assert is satisfied... how do we make
+            # sure that this sort of block is actually used?
+            assert isinstance(sampler.get_block(), weight_blocks.FFG_IRDBlock)
             weights = sampler.sample(layer_idx)
+            param_dict[weights] = sampler.get_params(layer_idx)
             l2_loss = 0.5 * tf.reduce_sum(weights ** 2)
 
-            # True outputs
-            pre, act = dense(inputs, weights, batch_norm, is_training,
+            # Main outputs
+            pre, act = dense(main_inputs, weights, batch_norm, is_training,
                     particles)
-            layer_collection.register_fully_connected(
-                    sampler.get_params(layer_idx), inputs, pre)
-            output = tf.identity(pre if ignore_activation else act,
-                    name="output")
+            main_output = tf.identity(pre if ignore_activation else act,
+                    name="main_out")
 
-            return output, l2_loss
+            # Aux outputs:
+            pre, act = dense(aux_inputs, weights, batch_norm, is_training,
+                    particles)
+            aux_output = tf.identity(pre if ignore_activation else act,
+                    name="aux_out")
+
+            return main_output, aux_output, l2_loss
 
     with tf.variable_scope("fully_connected"):
-        inputs = tf.tile(inputs, [particles, 1])
-        prev_inputs, l2_loss = inputs, 0.
+        main_inputs = tf.tile(main_inputs, [particles, 1])
+        aux_inputs = tf.tile(aux_inputs, [particles, 1])
+        prev_main_inputs, prev_aux_inputs, l2_loss = main_inputs, aux_inputs, 0.
 
         for i, out_size in enumerate(out_sizes):
             # The final output is unactivated.
             ignore_activation = (i == len(out_sizes) - 1)
-            prev_inputs, prev_aux_inputs, loss = FCBlock(prev_inputs,
-                    out_size, i, ignore_activation)
+
+            prev_main_inputs, prev_aux_inputs, loss = FCBlock(prev_main_inputs,
+                    prev_aux_inputs, out_size, i, ignore_activation)
             l2_loss += loss
 
-        pred = tf.identity(prev_inputs, name="pred")
+        main_pred = tf.identity(prev_main_inputs, name="main_pred")
+        aux_pred = tf.identity(prev_aux_inputs, name="aux_pred")
         l2_loss = tf.identity(l2_loss, name="l2_loss")
-        layer_collection.register_normal_predictive_distribution(pred)
 
-    return pred, l2_loss
+    return main_pred, aux_pred, l2_loss, param_dict
 
 def _build_ird(out_sizes):
     return functools.partial(IRDFeat(out_sizes=out_sizes))

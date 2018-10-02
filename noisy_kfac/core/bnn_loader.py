@@ -10,7 +10,10 @@ from ..misc.utils import get_logger, get_args, makedirs
 from ..misc.config import process_config
 from ..misc.data_loader import load_pytorch
 from .model import Model
-from .train import Trainer
+from .x3_model import X3Model
+from .ird_model import IRDModel
+from .kfac_train import KFACTrainer
+from .adam_train import AdamTrainer
 
 _INPUT_DIM = {
     'fmnist': [784],

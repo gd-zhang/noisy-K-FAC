@@ -20,6 +20,7 @@ class WeightBlock(object):
         self._n_out = shape[-1]
         self._coeff = coeff
         self._eta = eta
+        self.idx = idx
 
         self._build_weights(idx)
 
@@ -74,9 +75,61 @@ class FFGBlock(WeightBlock):
         return out_mean + out_rand
 
     def update(self, block):
+        # Is self._coeff == damping_int? No, but almost. It's lambda/N. It still
+        # needs to be divided by _eta to get damping_int.
+        # Nice, so we have variance = (f + damping_int)^-1 here. Assuming that
+        # `block._factor.get_cov() == f` here.
+        # Nice, so we are assigning self._std with sqrt(var). Correcto.
+        # What is get_cov()? Why is this equal to `f`?
+        # Well, I guess we can just suppose that get_cov is the fisher matrix
+        # provided from the FisherFactor class. OK.
+        #
+        # OK, so how do I use update_op?
+        # Sampler.update() definitely uses it.
+        # It looks convoluted though.
         variance = 1 / (block._factor.get_cov() + self._coeff / self._eta)
         update_op = self._std.assign(tf.sqrt(self._coeff * variance))
         return update_op
+
+class FFG_IRDBlock(WeightBlock):
+    def __init__(self, idx, shape, coeff, eta, damping_int):
+        super().__init__(idx, shape, coeff, eta)
+        self._f = tf.get_variable(
+                'train_w_'+_str(idx)+'f_diag',
+                shape=[self._n_in, self._n_out],
+                initializer=tf.constant_initializer(1e-5),
+                trainable=False
+        )
+
+        # self._coeff is preset to (lambda/N)
+        self.damping_int = tf.identity(self._coeff / self._eta,
+                name="damping_int")
+        pre_variance = 1 / (self._f + self.damping_int)
+        self._std = tf.sqrt(self._coeff * pre_variance, name="stddev")
+
+    def params(self):
+        """
+        Returns the two params important for NoisyAdam updating --
+        _mean and _f.
+
+        Note that in all other WeightBlock classes, params() means something
+        different.
+        """
+        # Dirty overloading here. Because other classes return other params.
+        return self._mean, self._f
+
+    def update(self, block):
+        # Sanity check:
+        raise NotImplementedError("IRD + NoisyAdam shouldn't use this update!")
+
+    def sample(self, particles):
+        mean = self._mean
+        out_mean = tf.tile(tf.expand_dims(mean, 0), [particles, 1, 1])
+        rand = tf.random_normal(shape=tf.shape(out_mean))
+        std = self._std
+        out_rand = tf.identity(std * rand, name="sample_noise")
+        return tf.identity(out_mean + out_rand,
+                name="weight_samples"+str(self.idx))
 
 
 class MVGBlock(WeightBlock):
