@@ -3,17 +3,19 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import ops.weight_blocks as wb
+from . import weight_blocks as wb
 
 from collections import OrderedDict
 
 # Names for various approximations that can be requested for weight matrix.
 APPROX_KRONECKER_NAME = "kron"
 APPROX_DIAGONAL_NAME = "diagonal"
+APPROX_IRD_DIAGONAL_NAME = "ird_diag"
 
 _APPROX_TO_BLOCK_TYPES = {
     APPROX_KRONECKER_NAME: wb.MVGBlock,
     APPROX_DIAGONAL_NAME: wb.FFGBlock,
+    APPROX_IRD_DIAGONAL_NAME: wb.FFG_IRDBlock,
 }
 
 
@@ -42,13 +44,12 @@ class Sampler(object):
             raise ValueError("Duplicate registration: {}".format(idx))
 
         block_type = _APPROX_TO_BLOCK_TYPES[self.config.fisher_approx]
-        self.blocks[idx] = block_type(idx, shape, self.config.kl/self._n_data, self.config.eta)
+        self.blocks[idx] = block_type(idx, shape, self.config.kl/self._n_data,
+                self.config.eta)
 
     def update(self, blocks):
         block_list = self.get_block()
         update_op = [wb.update(fb) for wb, fb in zip(block_list, blocks)]
         return tf.group(*update_op)
-
-
 
 

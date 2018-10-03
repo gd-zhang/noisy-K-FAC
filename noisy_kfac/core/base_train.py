@@ -1,5 +1,5 @@
 import tensorflow as tf
-from misc.utils import Summarizer
+from ..misc.utils import Summarizer
 
 
 class BaseTrain:

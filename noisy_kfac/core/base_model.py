@@ -7,6 +7,15 @@ class BaseModel:
         # init the global step
         self.init_global_step()
 
+    @property
+    def trainable_variables(self):
+        # note: we don't train the params of BN
+        vars = []
+        for var in tf.trainable_variables():
+            if "train_w_" in var.name:
+                vars.append(var)
+        return vars
+
     # save function that saves the checkpoint in the path defined in the config file
     def save(self, sess):
         print("Saving model...")
@@ -26,10 +35,11 @@ class BaseModel:
         # DON'T forget to add the global step tensor to the tensorflow trainer
         self.global_step_tensor = tf.train.get_or_create_global_step()
 
-    def init_saver(self):
-        # just copy the following line in your child class
-        # self.saver = tf.train.Saver(max_to_keep=self.config.max_to_keep)
+    def init_optim(self):
         raise NotImplementedError
+
+    def init_saver(self):
+        self.saver = tf.train.Saver(max_to_keep=self.config.max_to_keep)
 
     def build_model(self):
         raise NotImplementedError

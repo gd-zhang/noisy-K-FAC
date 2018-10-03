@@ -5,9 +5,9 @@ from __future__ import print_function
 from collections import OrderedDict
 import six
 
-from ops import fisher_blocks as fb
-from ops import loss_functions as lf
-from ops.utils import ensure_sequence, LayerParametersDict
+from . import fisher_blocks as fb
+from . import loss_functions as lf
+from .utils import ensure_sequence, LayerParametersDict
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import variable_scope

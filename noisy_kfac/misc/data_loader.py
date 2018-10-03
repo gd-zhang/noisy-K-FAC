@@ -20,6 +20,9 @@ class Transpose(object):
 
 
 def load_pytorch(config):
+    if "dataset" not in config:
+        return None, None
+
     if config.dataset == 'cifar10':
         if config.data_aug:
             train_transform = transforms.Compose([
@@ -78,15 +81,35 @@ def load_pytorch(config):
         ])
         trainset = torchvision.datasets.FashionMNIST(root=config.data_path, train=True, download=True, transform=transform)
         testset = torchvision.datasets.FashionMNIST(root=config.data_path, train=False, download=True, transform=transform)
+    elif config.dataset == 'x3' or 'x3ird':
+        # TODO: build toy x3 dataset.
+        train_X = torch.rand(3000, 1) * 2 - 1
+        train_Y = (train_X**3).squeeze()
+        test_X = torch.rand(1000, 1) * 2 - 1
+        test_Y = (test_X**3).squeeze()
+
+        mean, std = train_Y.mean(), train_Y.std()
+        def normalize(tensor):
+            return (tensor - mean) / std
+        if config.dataset in ['x3', 'x3ird']:
+            trainset = torch.utils.data.TensorDataset(train_X,
+                    normalize(train_Y))
+            testset = torch.utils.data.TensorDataset(test_X,
+                    normalize(test_Y))
+            if config.dataset == 'x3ird':
+                assert config.batch_size == config.test_batch_size, \
+                        "Requirement for IRD feat network, with fixed n_main"
     else:
         raise ValueError("Unsupported dataset!")
 
     trainloader = torch.utils.data.DataLoader(trainset,
                                               batch_size=config.batch_size,
                                               shuffle=True,
+                                              drop_last=True,
                                               num_workers=config.num_workers)
     testloader = torch.utils.data.DataLoader(testset,
                                              batch_size=config.test_batch_size,
                                              shuffle=False,
+                                             drop_last=True,
                                              num_workers=config.num_workers)
     return trainloader, testloader
