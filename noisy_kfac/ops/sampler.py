@@ -10,10 +10,12 @@ from collections import OrderedDict
 # Names for various approximations that can be requested for weight matrix.
 APPROX_KRONECKER_NAME = "kron"
 APPROX_DIAGONAL_NAME = "diagonal"
+APPROX_IRD_DIAGONAL_NAME = "ird_diag"
 
 _APPROX_TO_BLOCK_TYPES = {
     APPROX_KRONECKER_NAME: wb.MVGBlock,
     APPROX_DIAGONAL_NAME: wb.FFGBlock,
+    APPROX_IRD_DIAGONAL_NAME: wb.FFG_IRDBlock,
 }
 
 

@@ -9,11 +9,11 @@ import os
 from ..misc.utils import get_logger, get_args, makedirs
 from ..misc.config import process_config
 from ..misc.data_loader import load_pytorch
-from .model import Model
+from .kfac_model import KFACModel
 from .x3_model import X3Model
 from .ird_model import IRDModel
 from .kfac_train import KFACTrainer
-from .adam_train import AdamTrainer
+from .adam_train import NoisyAdamTrainer
 
 _INPUT_DIM = {
     'fmnist': [784],
@@ -37,6 +37,8 @@ class BNNLoader():
         # set logger
         path1 = os.path.join(root_dir, 'noisy_kfac/core/model.py')
         path2 = os.path.join(root_dir, 'noisy_kfac/core/train.py')
+        # Logger is shared between each instance. This prevents
+        # duplicate messages.
         BNNLoader.logger = BNNLoader.logger or get_logger('log',
                             logpath=config.summary_dir+'/',
                             filepath=os.path.abspath(__file__),)
@@ -56,18 +58,39 @@ class BNNLoader():
         if self.test_loader is None:
             self.test_loader = test_loader_cfg
 
+        assert self.train_loader is not None
+        assert self.test_loader is not None
+
         self.sess = tf.get_default_session()
 
         # define computational graph
-        input_size = input_size or _INPUT_DIM[self.config.dataset]
-        self.model = Model(self.config, input_size,
-                len(self.train_loader))
-        self.trainer = Trainer(self.sess, self.model, self.train_loader,
-                self.test_loader, self.config, self.logger)
+        self.tag = tag = config.get("tag")
+        if tag == "x3ird":  # Using X3 dataset to test NoisyAdam-IRD model.
+            config["n_main"] = config.batch_size
+            config["n_aux"] = 0
+            config["n_timesteps"] = 1
+            config["n_features"] = 1
+            config["fisher_approx"] = "ird_diag"
+            self.model = X3Model(config)
+            assert self.model.n_data == self.config.batch_size
+            self.trainer = NoisyAdamTrainer(self.sess, self.model,
+                    self.train_loader, self.test_loader, config,
+                    self.logger)
+        else:
+            input_size = input_size or _INPUT_DIM[self.config.dataset]
+            self.model = KFACModel(config, input_size,
+                    len(self.train_loader))
+            self.trainer = Trainer(self.sess, self.model, self.train_loader,
+                    self.test_loader, config, self.logger)
 
 
     def train(self, aux_inputs):
-        self.trainer.train(aux_inputs)
+        if self.tag == "x3ird":
+            aux_inputs = [[[]]]
+            self.trainer.train(aux_inputs)
+            plot_x3(self.sess, self.model, self.test_loader)
+        else:
+            self.trainer.train(aux_inputs)
 
     def test(self, X, n_samples=5):
         feed_dict = {

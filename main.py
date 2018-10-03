@@ -10,8 +10,8 @@ import os
 from noisy_kfac.misc.utils import get_logger, get_args, makedirs
 from noisy_kfac.misc.config import process_config
 from noisy_kfac.misc.data_loader import load_pytorch
-from noisy_kfac.core.model import Model
-from noisy_kfac.core.train import Trainer
+from noisy_kfac.core.kfac_model import KFACModel
+from noisy_kfac.core.kfac_train import KFACTrainer
 from noisy_kfac.core.bnn_loader import BNNLoader
 
 
@@ -36,6 +36,13 @@ def main():
         exit(1)
     from_config(config)
 
+def bnn_main():
+    tf.set_random_seed(1231)
+    np.random.seed(1231)
+
+    args = get_args()
+    loader = BNNLoader(config_name=args.config)
+    loader.train(None)
 
 def from_config(config):
     makedirs(config.summary_dir)
@@ -43,10 +50,8 @@ def from_config(config):
 
     # set logger
     path = os.path.dirname(os.path.abspath(__file__))
-    path1 = os.path.join(path, 'noisy_kfac/core/model.py')
-    path2 = os.path.join(path, 'noisy_kfac/core/train.py')
     logger = get_logger('log', logpath=config.summary_dir+'/',
-                        filepath=os.path.abspath(__file__), package_files=[path1, path2])
+                        filepath=os.path.abspath(__file__))
 
     logger.info(str(config.items()))
 
@@ -56,8 +61,8 @@ def from_config(config):
     with tf.Graph().as_default() as g:
         with tf.Session(graph=g).as_default() as sess:
             # define computational graph
-            model_ = Model(config, _INPUT_DIM[config.dataset], len(train_loader.dataset))
-            trainer = Trainer(sess, model_, train_loader, test_loader, config, logger)
+            model_ = KFACModel(config, _INPUT_DIM[config.dataset], len(train_loader.dataset))
+            trainer = KFACTrainer(sess, model_, train_loader, test_loader, config, logger)
 
             trainer.train()
 
@@ -85,4 +90,4 @@ def plot_x3(sess, model_, test_loader, particles=5):
 
 
 if __name__ == "__main__":
-    main()
+    bnn_main()

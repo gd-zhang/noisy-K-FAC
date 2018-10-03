@@ -74,7 +74,7 @@ class NoisyAdamTrainer(BaseTrain):
 
             feed_dict.update({
                 self.model.is_training: is_training,
-                self.model.inputs: x,
+                self.model.main_inputs: x,
                 })
 
             # XXX: Important!
@@ -102,7 +102,7 @@ class NoisyAdamTrainer(BaseTrain):
         summaries_dict[prefix+'_loss'] = avg_loss
 
         for name, scalar in log_aux.items():
-            print("{} | {}: {:5.4f} ".format(prefix, name, scalar)
+            print("{} | {}: {:5.4f} ".format(prefix, name, scalar))
 
         # summarize
         cur_iter = self.model.global_step_tensor.eval(self.sess)

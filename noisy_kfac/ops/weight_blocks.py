@@ -45,7 +45,7 @@ class WeightBlock(object):
     def _mean(self):
         weight = tf.reshape(self._weight, (self._n_in-1, self._n_out))
         bias = tf.expand_dims(self._bias, 0)
-        return tf.concat([weight, bias], 0)
+        return tf.concat([weight, bias], 0, name="mean")
 
     @abc.abstractmethod
     def sample(self, particles):
@@ -92,10 +92,10 @@ class FFGBlock(WeightBlock):
         return update_op
 
 class FFG_IRDBlock(WeightBlock):
-    def __init__(self, idx, shape, coeff, eta, damping_int):
+    def __init__(self, idx, shape, coeff, eta):
         super().__init__(idx, shape, coeff, eta)
         self._f = tf.get_variable(
-                'train_w_'+_str(idx)+'f_diag',
+                'train_w_'+str(idx)+'f_diag',
                 shape=[self._n_in, self._n_out],
                 initializer=tf.constant_initializer(1e-5),
                 trainable=False

@@ -2,6 +2,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import tensorflow as tf
+
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import math_ops
@@ -68,10 +70,18 @@ class AdamOptimizer(gradient_descent.GradientDescentOptimizer):
         return super().compute_gradients(*args, **kwargs)
 
     def apply_gradients(self, grads_and_vars, *args, **kwargs):
+        """
+        Apply gradient updates to the variational mean and variance parameters
+        of each sample weight, given a list of gradients of each weight with
+        respect to the loss.
+
+        Params:
+        grads_and_vars -- a list of (weight_grad, weight_tensor) pairs.
+        """
         grads_and_vars = list(grads_and_vars)
         # A list of gradients and variables.
-        steps_and_vars = self._compute_update_steps(grads_and_vars)
-        return super().apply_gradients(steps_and_vars, *args, **kwargs)
+        mu_grads_and_mu_vars = self._compute_update_steps(grads_and_vars)
+        return super().apply_gradients(mu_grads_and_mu_vars, *args, **kwargs)
 
     def _compute_update_steps(self, grads_and_vars):
         """
@@ -82,10 +92,12 @@ class AdamOptimizer(gradient_descent.GradientDescentOptimizer):
         Also update fisher (which determines the variance of the variational
         distribution) and Adam momentum.
         """
-        # Update fisher with a session.run().
+        # Produce fisher update operations.
+        import pdb; pdb.set_trace()
         fisher_updates = self._update_fisher(grads_and_vars,
                 decay=self._fisher_momentum)
 
+        #TODO: addme back in. Checking cycles now
         with tf.control_dependencies(fisher_updates):
             # Calculate mu gradients. As a side effect, update momentum.
             mu_vel_and_mu_vars = self._update_momentum_and_mu(
@@ -109,8 +121,15 @@ class AdamOptimizer(gradient_descent.GradientDescentOptimizer):
         """
         beta2 = decay
 
-        for grad, w_var in grads_and_vars:
-            _, f = self.param_dict[var]
+        def _update(grad, w_var):
+            # XXX: Ugly hack to change
+            # (n_particles, n_in, n_out) => (n_in, n_out). Otherwise
+            # the assignment won't work. In reality, n_particles should be 1
+            # here, so this will have no effect.
+            # TODO: assert n_particles==1.
+            grad = tf.reduce_mean(grad, axis=0, name="avg_grad")
+
+            _, f = self.param_dict[w_var]
             new_f = (beta2 - 1) * f + (1 - beta2) * tf.square(grad)
             return f.assign(new_f)
         updates = [_update(grad, w) for grad, w in grads_and_vars]
