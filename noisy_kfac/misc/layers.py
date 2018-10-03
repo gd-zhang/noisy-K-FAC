@@ -2,6 +2,9 @@ import tensorflow as tf
 
 
 def _append_homog(tensor):
+    """
+    Adds homogeneous input as last element of last dimension of tensor.
+    """
     rank = len(tensor.shape.as_list())
     shape = tf.concat([tf.shape(tensor)[:-1], [1]], axis=0)
     ones = tf.ones(shape, dtype=tensor.dtype)
@@ -17,6 +20,31 @@ def dense(inputs, weights, batch_norm, is_training, particles=1):
     inputs = tf.reshape(inputs, [particles, -1, n_in])
     preactivations = tf.matmul(inputs, weights)
     preactivations = tf.reshape(preactivations, [-1, weights.get_shape()[-1]])
+
+    if batch_norm:
+        bn = tf.layers.batch_normalization(preactivations, training=is_training)
+        activations = tf.nn.relu(bn)
+    else:
+        activations = tf.nn.relu(preactivations)
+
+    return preactivations, activations
+
+def dup_for_particles(inputs, particles):
+    """
+    Prepend a new dimension 0 where inputs is duplicated `particles` times.
+    """
+    rank = len(inputs.shape.as_list())
+    ones = tf.ones([particles] + [1]*rank)
+    return tf.identity(ones * inputs, name="psuedotile")
+
+def dense_feat(inputs, weights, batch_norm, is_training, particles,):
+    """
+    Like dense(), but preserves a final n_features dimensions for IRD.
+    """
+    inputs = _append_homog(inputs)
+    # inputs = dup_for_particles(inputs, particles)
+    preactivations = tf.matmul(inputs, weights)
+    # preactivations = tf.reshape(preactivations, [-1, weights.get_shape()[-1]])
 
     if batch_norm:
         bn = tf.layers.batch_normalization(preactivations, training=is_training)

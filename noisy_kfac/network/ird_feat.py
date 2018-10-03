@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import functools
 
-from ..misc.layers import dense
+from ..misc.layers import dense_feat, dup_for_particles
 from .registry import register_model
 from ..ops import weight_blocks
 
@@ -83,10 +83,11 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
         of weights of each particle.
       assert_group: A tf.group of tf.Assert operations that act as
         sanity checks on this network.
-      param_dict: A dictionary {sample => (mean, fisher_diag)}. The keys are
+      param_dict: A dictionary {sample => weight_block}. The keys are
         all the weight_samples with which we want to take Noisy Adam gradients
-        to. The values are the variational parameters we need to update for
-        each weight.
+        to. The values are the weight blocks associated with each sample. These
+        weight blocks hold the variational parameters that Noisy Adam should
+        update.
     """
     # Might want to move this scope up a level to outside the function call.
     with tf.variable_scope(name_or_scope=scope, default_name="ird_feat"):
@@ -105,13 +106,14 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
                 [n_aux*n_timesteps, n_features], name="aux_input")
 
         # Build dense network.
-        main_output, aux_output, l2_loss, param_dict = fully_connected(
+        main_output_expand, aux_output_expand, l2_loss, param_dict = \
+            fully_connected(
                 main_input, aux_input,
                 sampler, is_training, batch_norm, n_particles,
                 layer_out_sizes)
 
-        main_output = tf.identity(main_output, name="main_output")
-        aux_output = tf.identity(aux_output, name="aux_output")
+        main_output = tf.squeeze(main_output_expand, [2], name="main_output")
+        aux_output = tf.squeeze(aux_output_expand, [2], name="aux_output")
 
         # Sanity check to ensure that splitting works here. I can remove later.
         main_shape = tf.shape(main_output)
@@ -147,11 +149,11 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
 
         # Calculate normalization constant for each particle.
         aux_output_lse = tf.reduce_logsumexp(aux_output_traj,
-                name="aux_output_lse_pre", axis=1)
+                name="aux_output_lse_pre", axis=1, keepdims=True)
 
         # Sanity check on shape of aux_output_lse.
         assert_list.append(tf.assert_equal(
-                [n_particles], tf.shape(aux_output_lse),
+                [n_particles, 1], tf.shape(aux_output_lse),
                 name="assert_shape_aux_output_lse"))
 
         # Calculate log-likelihood of a proxy reward generating each
@@ -160,7 +162,7 @@ def IRDFeat(main_input_traj, aux_input_traj, n_main, n_aux, n_timesteps,
 
         # Sanity check on shape of ll_sep
         assert_list.append(tf.assert_equal(
-                [n_particles, n_main], tf.shape(aux_output_lse),
+                [n_particles, n_main], tf.shape(ll_sep),
                 name="assert_shape_ll_sep"))
 
         # Average log-likelihood over all trajectories and all neural
@@ -190,8 +192,7 @@ def fully_connected(main_inputs, aux_inputs, sampler, is_training, batch_norm,
       l2_loss: The l2 regularization error, equal to the one-half times the sum
         of squares of weights in this neural network. This is useful for
         noisy-kfac because its gradient is equal to the weight vector itself.
-      param_dict: A dictionary mapping weight_samples to their variational
-        parameters (mean, fisher_diag).
+      param_dict: A dictionary mapping weight_samples to their weight_blocks.
     """
     param_dict = dict()
     def FCBlock(main_inputs, aux_inputs, out_channel, layer_idx,
@@ -199,22 +200,27 @@ def fully_connected(main_inputs, aux_inputs, sampler, is_training, batch_norm,
         with tf.variable_scope("layer"+str(layer_idx)):
             in_channel = main_inputs.shape.as_list()[-1]
             sampler.register_block(layer_idx, (in_channel, out_channel))
-            # TODO: Make sure that this assert is satisfied... how do we make
-            # sure that this sort of block is actually used?
-            assert all([isinstance(b, weight_blocks.FFG_IRDBlock)
-                    for b in sampler.get_block()])
+
+
             weights = sampler.sample(layer_idx)
-            param_dict[weights] = sampler.get_params(layer_idx)
             l2_loss = 0.5 * tf.reduce_sum(weights ** 2)
 
+            # Map weights to weight block for Noisy Adam Optimizer.
+            wb = sampler.blocks[layer_idx]
+            assert isinstance(wb, weight_blocks.FFG_IRDBlock)
+            # TODO: rename param_dict to wb_dict
+            param_dict[weights] = wb
+
             # Main outputs
-            pre, act = dense(main_inputs, weights, batch_norm, is_training,
+            pre, act = dense_feat(main_inputs, weights, batch_norm, is_training,
                     particles)
             main_output = tf.identity(pre if ignore_activation else act,
                     name="main_out")
 
+            # import pdb; pdb.set_trace()
+
             # Aux outputs:
-            pre, act = dense(aux_inputs, weights, batch_norm, is_training,
+            pre, act = dense_feat(aux_inputs, weights, batch_norm, is_training,
                     particles)
             aux_output = tf.identity(pre if ignore_activation else act,
                     name="aux_out")
@@ -222,8 +228,9 @@ def fully_connected(main_inputs, aux_inputs, sampler, is_training, batch_norm,
             return main_output, aux_output, l2_loss
 
     with tf.variable_scope("fully_connected"):
-        main_inputs = tf.tile(main_inputs, [particles, 1])
-        aux_inputs = tf.tile(aux_inputs, [particles, 1])
+        old_main_inputs, old_aux_inputs = main_inputs, aux_inputs
+        main_inputs = dup_for_particles(main_inputs, particles)
+        aux_inputs = dup_for_particles(aux_inputs, particles)
         prev_main_inputs, prev_aux_inputs, l2_loss = main_inputs, aux_inputs, 0.
 
         for i, out_size in enumerate(out_sizes):

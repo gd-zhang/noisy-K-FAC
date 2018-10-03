@@ -27,19 +27,19 @@ class NoisyAdamTrainer(BaseTrain):
         for cur_epoch in range(self.config.epoch):
             self.logger.info('epoch: {}'.format(int(cur_epoch)))
             self.train_epoch(base_feed_dict)
-            self.test_epoch(base_feed_dict)
+            # self.test_epoch(base_feed_dict)
 
 
     def train_epoch(self, base_feed_dict={}):
         fd = dict(base_feed_dict)
         fd[self.model.n_particles] = self.config.train_particles
-        _epoch(base_feed_dict=fd, is_training=True)
+        self._epoch(base_feed_dict=fd, is_training=True)
 
 
     def test_epoch(self, base_feed_dict={}):
         fd = dict(base_feed_dict)
         fd[self.model.n_particles] = self.config.test_particles
-        _epoch(base_feed_dict=fd, is_training=False)
+        self._epoch(base_feed_dict=fd, is_training=False)
 
 
     def _epoch(self, is_training, base_feed_dict={}):
@@ -67,6 +67,7 @@ class NoisyAdamTrainer(BaseTrain):
             elif len(data) == 2:
                 # e.g., for x3 data with input and targets
                 x, y = data
+                x = np.expand_dims(x, axis=-1)
                 feed_dict[self.model.targets] = y
             else:
                 raise ValueError("don't know how to interpret data".format(
@@ -83,7 +84,8 @@ class NoisyAdamTrainer(BaseTrain):
             # Get rid of batch norm during testing.
             feed_dict[self.model.is_training] = False
 
-            loss, log_aux = self.model.get_loss_and_aux(feed_dict=feed_dict)
+            loss, log_aux = self.model.get_loss_and_aux(feed_dict=feed_dict,
+                    sess=self.sess)
             # loss, outputs, aux_outputs, total_loss = self.sess.run([
             #     self.model.loss, self.model.outputs,
             #     self.model.aux_outputs, self.model.total_loss],
@@ -108,4 +110,4 @@ class NoisyAdamTrainer(BaseTrain):
         cur_iter = self.model.global_step_tensor.eval(self.sess)
         self.summarizer.summarize(cur_iter, summaries_dict=summaries_dict)
 
-        # self.model.save(self.sess)
+        self.model.save(self.sess)

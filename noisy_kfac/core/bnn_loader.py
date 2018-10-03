@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import os
@@ -29,6 +30,9 @@ class BNNLoader():
 
     def __init__(self, input_size=None, config_name="x3/kfac_ird.json",
             train_loader=None, test_loader=None):
+
+        self.sess = tf.Session()
+
         parent_dir = os.path.dirname(os.path.abspath(__file__))
         root_dir = os.path.join(parent_dir, '../../')
         configpath = os.path.join(root_dir, 'configs/', config_name)
@@ -61,8 +65,6 @@ class BNNLoader():
         assert self.train_loader is not None
         assert self.test_loader is not None
 
-        self.sess = tf.get_default_session()
-
         # define computational graph
         self.tag = tag = config.get("tag")
         if tag == "x3ird":  # Using X3 dataset to test NoisyAdam-IRD model.
@@ -86,7 +88,7 @@ class BNNLoader():
 
     def train(self, aux_inputs):
         if self.tag == "x3ird":
-            aux_inputs = [[[]]]
+            aux_inputs = np.ndarray([0, 1, 1], dtype=float)
             self.trainer.train(aux_inputs)
             plot_x3(self.sess, self.model, self.test_loader)
         else:
@@ -101,22 +103,32 @@ class BNNLoader():
         return self.sess.run(self.model.outputs, feed_dict=feed_dict)
 
 
-def plot_x3(sess, model_, test_loader, particles=5):
-    # Only applicable to config-loaded X3 dataset.
-    X, Y = test_loader.dataset.tensors
-    feed_dict = {
-            model_.inputs: X,
-            model_.is_training: False,
-            model_.n_particles: particles,
-    }
-    Y_hat = sess.run(model_.outputs, feed_dict=feed_dict).flatten()
-    X = X.numpy().flatten()
-    Y = Y.numpy()
+def plot_x3(sess, model, test_loader, particles=4):
+    # Only applicable to config-loaded X3 dataset on IRD feat network.
+    X = []
+    Y_hat = []
+    Y = []
+
+    for x, y in iter(test_loader):
+        x = np.expand_dims(x, axis=-1)
+        feed_dict = {
+                model.main_inputs: x,
+                model.is_training: False,
+                model.n_particles: particles,
+        }
+        y_hat = sess.run(model.main_outputs, feed_dict=feed_dict)
+
+        X.extend(x.flatten())
+        Y_hat.extend(np.array(y_hat).flatten())
+        Y.extend(np.array(y).flatten())
+
+        # Break because the next sess.run will draw new particles.
+        break
 
     N = len(Y)
     for i in range(particles):
         plt.scatter(X, Y_hat[N*i:N*(i+1)], label="prediction {}".format(i),
                 s=1)
-    plt.scatter(X, Y, label="test", s=3)
+    plt.scatter(X, Y, label="test", s=3, marker="*")
     plt.legend()
     plt.show()

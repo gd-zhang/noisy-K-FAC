@@ -105,9 +105,11 @@ def load_pytorch(config):
     trainloader = torch.utils.data.DataLoader(trainset,
                                               batch_size=config.batch_size,
                                               shuffle=True,
+                                              drop_last=True,
                                               num_workers=config.num_workers)
     testloader = torch.utils.data.DataLoader(testset,
                                              batch_size=config.test_batch_size,
                                              shuffle=False,
+                                             drop_last=True,
                                              num_workers=config.num_workers)
     return trainloader, testloader
