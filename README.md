@@ -2,6 +2,9 @@
 
 The major contributors of this repository include [Guodong Zhang](https://github.com/gd-zhang) and [Shengyang Sun](https://github.com/ssydasheng).
 
+## Update
+A new [repo](https://github.com/pomonam/NoisyNaturalGradient) was released with implementations of noisy K-FAC and [noisy EK-FAC](https://arxiv.org/pdf/1811.12565.pdf).
+
 ## Introduction
 This repository contains the code to reproduce the classification results from the paper Noisy Natural Gradient as Variational Inference [Paper](https://arxiv.org/abs/1712.02390), [Video](https://www.youtube.com/watch?v=bWItvHYqKl8). (RL code see [VIME-NNG](https://github.com/gd-zhang/VIME-NNG))
 
