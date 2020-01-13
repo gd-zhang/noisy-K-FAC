@@ -1,6 +1,6 @@
 # noisy K-FAC
 
-The major contributors of this repository include [Guodong Zhang](https://github.com/gd-zhang) and [Shengyang Sun](https://github.com/ssydasheng).
+The major contributors of this repository include [Guodong Zhang](https://github.com/gd-zhang) and [Shengyang Sun](https://github.com/ssydasheng). Note that this repo uses a modified version of tensorflow K-FAC(https://github.com/tensorflow/kfac).
 
 ## Update
 A new [repo](https://github.com/pomonam/NoisyNaturalGradient) was released with implementations of noisy K-FAC and [noisy EK-FAC](https://arxiv.org/pdf/1811.12565.pdf).
